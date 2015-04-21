@@ -36,19 +36,7 @@ int cmp(int l, int r)
     else return 1;
 }
 
-int main()
+int sort_fn(int* data, int count)
 {
-    int count;
-    scanf("%d", &count);
-
-    int *data = (int*)malloc(count * sizeof(int));
-    int i;
-    for (i = 0; i < count; i++)
-        scanf("%d", &data[i]);
-
     sort_insertion(data, count, &cmp);
-    for (i = 0; i < count; i++)
-        printf("%d ", data[i]);
-    printf("\n");
-    return 0;
 }
