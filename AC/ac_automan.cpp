@@ -13,8 +13,9 @@ class AC_Automan
             int deep;
             Node* fail;
             Node* next[char_size];
+            bool ref[char_size];
 
-            Node() : finally(false), deep(0), fail(NULL), next{} {}
+            Node() : finally(false), deep(0), fail(NULL), next{}, ref{} {}
         };
 
         Node root_;
@@ -23,6 +24,37 @@ class AC_Automan
     public:
         AC_Automan() : state_(&root_) {
             root_.fail = &root_;
+        }
+
+        ~AC_Automan() {
+            Clear();
+        }
+
+        void Clear() {
+            std::queue<Node*> Q;
+            for (int i = 0; i < char_size; ++i) {
+                Node *child = root_.next[i];
+                root_.next[i] = NULL;
+                if (root_.ref[i]) continue;
+                if (!child) continue;
+                Q.push(child);
+            }
+
+            while (!Q.empty()) {
+                Node* nd = Q.front();
+                Q.pop();
+
+                for (int i = 0; i < char_size; ++i) {
+                    Node *child = nd->next[i];
+                    if (!child) continue;
+
+                    if (!nd->ref[i]) {
+                        Q.push(child);
+                    }
+                }
+
+                delete nd;
+            }
         }
 
         void AddPattern(std::string const& p) {
@@ -59,6 +91,26 @@ class AC_Automan
                     if (child) {
                         Q.push(child);
                         child->fail = Next(nd->fail, (char)i);
+                    }
+                }
+            }
+        }
+
+        void CreateMatrix() {
+            std::queue<Node*> Q;
+            Q.push(&root_);
+
+            while (!Q.empty()) {
+                Node* nd = Q.front();
+                Q.pop();
+
+                for (int i = 0; i < char_size; ++i) {
+                    Node *child = nd->next[i];
+                    if (child) {
+                        Q.push(child);
+                    } else {
+                        nd->next[i] = Next(nd->fail, (char)i);
+                        nd->ref[i] = true;
                     }
                 }
             }
@@ -117,7 +169,9 @@ int main()
     for (int i = 0; i < sizeof(patterns) / sizeof(const char*); ++i)
         ac.AddPattern(patterns[i]);
     ac.CreateFailPointer();
+    ac.CreateMatrix();
     ac.solve(source, dump);
+    ac.Clear();
     return 0;
 }
 
