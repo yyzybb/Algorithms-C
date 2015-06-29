@@ -1,6 +1,9 @@
 #include <vector>
 #include <queue>
 #include <string>
+#include <string.h>
+
+static int utf8_char_c(std::string const& str);
 
 class AC_Automan
 {
@@ -57,8 +60,8 @@ class AC_Automan
             }
         }
 
-        void AddPattern(std::string const& p) {
-            if (p.empty()) return ;
+        bool AddPattern(std::string const& p) {
+            if (p.empty()) return false;
 
             Node* pos = &root_;
             for (std::size_t i = 0; i < p.size(); ++i) {
@@ -71,6 +74,7 @@ class AC_Automan
                 pos = pos->next[next_index];
             }
             pos->finally = true;
+            return true;
         }
 
         void CreateFailPointer() {
@@ -96,7 +100,7 @@ class AC_Automan
             }
         }
 
-        void CreateMatrix() {
+        void CreateGrah() {
             std::queue<Node*> Q;
             Q.push(&root_);
 
@@ -120,12 +124,13 @@ class AC_Automan
             state_ = &root_;
         }
 
-        void Match(std::string const& source, void(*cb)(int, std::string const&))
+        int Match(std::string const& source, void(*cb)(int, std::string const&))
         {
             Reset();
-            for (std::size_t i = 0; i < source.size(); ++i) {
-                state_ = Next(state_, source[i]);
-                if (state_->finally) {
+            int move_cnt = 0;
+            for (std::size_t i = 0; i < source.size(); ++i, ++move_cnt) {
+                state_ = GraphNext(state_, source[i]);
+                if (state_->finally && cb) {
                     cb(i - state_->deep + 1, source.substr(i - state_->deep + 1, state_->deep));
 
                     // sub string.
@@ -135,18 +140,21 @@ class AC_Automan
                     }
                 }
             }
+            return move_cnt;
         }
 
-        std::string Replace(std::string const& source, std::string(*replace)(std::string const&))
+        std::string Replace(std::string const& source)
         {
             Reset();
             int offset = 0;
             std::string result(source);
             for (std::size_t i = 0; i < source.size(); ++i) {
-                state_ = Next(state_, source[i]);
+                state_ = GraphNext(state_, source[i]);
                 if (state_->finally) {
                     std::string pattern = source.substr(i - state_->deep + 1, state_->deep);
-                    std::string dst = replace(pattern);
+                    std::string dst;
+                    dst.resize(utf8_char_c(pattern));
+                    memset(&dst[0], '*', dst.size());
                     result.replace(i - state_->deep + 1 + offset, pattern.size(), dst);
                     offset += (int)dst.size() - (int)pattern.size();
                     Reset();
@@ -165,6 +173,10 @@ class AC_Automan
             }
 
             return Next(state->fail, value);
+        }
+
+        Node* GraphNext(Node* state, char value) {
+            return state->next[(unsigned char)value];
         }
 };
 
